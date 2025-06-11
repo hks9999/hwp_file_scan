@@ -1,5 +1,33 @@
-
 import olefile
+import os
+
+def analyze_ole_file(file_path):
+    """
+    주어진 OLE 파일을 분석하고 항목 목록 및 각 항목의 크기를 출력합니다.
+    """
+    if not olefile.isOleFile(file_path):
+        print("❌ 이 파일은 OLE 형식이 아닙니다.")
+        return
+
+    try:
+        ole = olefile.OleFileIO(file_path)
+        entries = ole.listdir()
+
+        print(f"\n📂 '{file_path}'의 OLE 항목 목록:")
+        for entry in entries:
+            entry_path = "/".join(entry)
+            try:
+                with ole.openstream(entry) as stream:
+                    data = stream.read()
+                    size = len(data)
+                    print(f" - {entry_path} ({size} 바이트)")
+            except Exception as e:
+                print(f" - {entry_path} (⚠️ 크기를 읽을 수 없음: {e})")
+
+        ole.close()
+
+    except Exception as e:
+        print(f"❗ OLE 파일 분석 중 오류 발생: {e}")
 
 def signature_file(filepath):
     """
@@ -27,8 +55,15 @@ def signature_file(filepath):
     except Exception as e:
         return f"파일을 열 수 없습니다: {e}"
 
-# 사용 예시
-file_path = "sample1.hwp.hwpx"
-result = signature_file(file_path)
-print(result)
+def traverse_and_act(root_dir):
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+            print(file_path)
+            #print(signature_file(file_path))
+            analyze_ole_file(file_path)
+            print()
 
+if __name__ == "__main__":
+    target_directory = "c:\\sample"  # 여기에 대상 디렉토리 경로를 입력하세요
+    traverse_and_act(target_directory)
