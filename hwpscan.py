@@ -1,5 +1,26 @@
 import olefile
 import os
+import zlib
+
+def auto_decompress(data):
+    """
+    데이터의 압축 포맷을 자동 감지하고 압축 해제 시도.
+    성공 시: (1, 압축 해제된 데이터)
+    실패 시: (0, 원본 데이터)
+    """
+    # 압축 포맷 감지
+    if data.startswith(b'\x1f\x8b'):
+        wbits = 31  # gzip
+    elif data.startswith((b'\x78\x01', b'\x78\x9c', b'\x78\xda')):
+        wbits = 15  # zlib
+    else:
+        wbits = -15  # raw deflate
+
+    try:
+        decompressed = zlib.decompress(data, wbits=wbits)
+        return 1, decompressed
+    except zlib.error:
+        return 0, data
 
 def analyze_ole_file(file_path):
     """
@@ -21,6 +42,18 @@ def analyze_ole_file(file_path):
                     data = stream.read()
                     size = len(data)
                     print(f" - {entry_path} ({size} 바이트)")
+                    return_flag, return_content = auto_decompress(data)
+                    if(return_flag == True ):
+                        print("----> Compressed")
+                        if b"xor" in return_content:
+                            print(f"   🔍 'xor' 문자열 발견! ")
+                        if b"\x4d\x5a\x00\x00" in return_content:
+                            print(f"   🔍 'mz' 문자열 발견! ")
+                        if b"\x70\x00\x6f\x00\x77\x00\x65\x00" in return_content:
+                            print(f"   🔍 'powershell' 문자열 발견 !")
+                        if b"909090909090" in return_content:
+                            print(f"   🔍 'Nop Code' 발견 !")
+                            
             except Exception as e:
                 print(f" - {entry_path} (⚠️ 크기를 읽을 수 없음: {e})")
 
