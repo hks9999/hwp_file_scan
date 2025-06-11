@@ -1,3 +1,8 @@
+# anaconda / python3 
+
+# pip install olefile
+# pip install zlib
+
 import olefile
 import os
 import zlib
@@ -26,6 +31,7 @@ def analyze_ole_file(file_path):
     """
     주어진 OLE 파일을 분석하고 항목 목록 및 각 항목의 크기를 출력합니다.
     """
+    section_number=0
     if not olefile.isOleFile(file_path):
         print("❌ 이 파일은 OLE 형식이 아닙니다.")
         return
@@ -37,6 +43,7 @@ def analyze_ole_file(file_path):
         print(f"\n📂 '{file_path}'의 OLE 항목 목록:")
         for entry in entries:
             entry_path = "/".join(entry)
+            section_number+=1
             try:
                 with ole.openstream(entry) as stream:
                     data = stream.read()
@@ -47,27 +54,46 @@ def analyze_ole_file(file_path):
                         print("----> Compressed")
                         
                     ##################### 여기가 중요함 #################################
+                    save_flag = 0
                     if b"xor" in return_content:
+                        save_flag=1
                         print(f"   🔍 'xor' 발견! ")
                     if b"\x4d\x5a\x00\x00" in return_content:
+                        save_flag=1
                         print(f"   🔍 'MZ' 발견! ")
                     if b"\x70\x00\x6f\x00\x77\x00\x65\x00" in return_content:
+                        save_flag=1
                         print(f"   🔍 'powershell' 발견 !")
-                    if b"909090909090" in return_content:
+                    if b"90909090" in return_content:
+                        save_flag=1
                         print(f"   🔍 'Nop Code' 발견 !")
                     if b"\x53\x00\x61\x00\x76\x00\x65\x00\x54\x00" in return_content:
+                        save_flag=1
                         print(f"   🔍 'Script[SaveToFile]' 발견 !")
                     if b"getenv" in return_content:
+                        save_flag=1
                         print(f"   🔍 GhostScript 'getenv' 발견 !")
                     if b"Startup" in return_content:
+                        save_flag=1
                         print(f"   🔍 GhostScript 'Startup' 발견 !")
                     if b"exec" in return_content:
+                        save_flag=1
                         print(f"   🔍 GhostScript 'exec' 발견 !")
                     if b"dup" in return_content:
+                        save_flag=1
                         print(f"   🔍 GhostScript 'dup' 발견 !")
                     if b"SQBmACg" in return_content:
+                        save_flag=1
                         print(f"   🔍 PowerShell Base64 Code 'SQBmACg' 발견 !")
-                     ##################### 여기가 중요함 #################################
+                    #### 항목에 적용되는 경우만 저장함
+                    if(save_flag == 1) :
+                        ## 여기서 압축해제 코드를 저장함
+                        print("파일저장")
+                        filename = file_path+"_"+str(section_number)+"_decompress.txt"
+                        savefile = open(filename,"wb")
+                        savefile.write(return_content)
+                        savefile.close()
+                    ##################### 여기가 중요함 #################################
                      
             except Exception as e:
                 print(f" - {entry_path} (⚠️ 크기를 읽을 수 없음: {e})")
