@@ -6,6 +6,8 @@
 import olefile
 import os
 import zlib
+import zipfile
+import io
 
 def auto_decompress(data):
     """
@@ -50,11 +52,16 @@ def analyze_ole_file(file_path):
                     size = len(data)
                     print(f" - {entry_path} ({size} 바이트)")
                     return_flag, return_content = auto_decompress(data)
-                    if(return_flag == True ):
-                        print("----> Compressed")
-                        
+
                     ##################### 여기가 중요함 #################################
                     save_flag = 0
+                    if b"VBA" in return_content:
+                        save_flag=1
+                        print(f"   🔍 'VBA' 발견! ")
+                        save_flag = 0
+                    if b"DDE" in return_content:
+                        save_flag=1
+                        print(f"   🔍 'DDE' 발견! ")
                     if b"xor" in return_content:
                         save_flag=1
                         print(f"   🔍 'xor' 발견! ")
@@ -86,9 +93,11 @@ def analyze_ole_file(file_path):
                         save_flag=1
                         print(f"   🔍 PowerShell Base64 Code 'SQBmACg' 발견 !")
                     #### 항목에 적용되는 경우만 저장함
+                    if(return_flag == True ):
+                        print("----> Compressed")
                     if(save_flag == 1) :
                         ## 여기서 압축해제 코드를 저장함
-                        print("파일저장")
+                        print("----> '"+file_path+"' 파일저장")
                         filename = file_path+"_"+str(section_number)+"_decompress.txt"
                         savefile = open(filename,"wb")
                         savefile.write(return_content)
@@ -134,11 +143,13 @@ def traverse_and_act(root_dir):
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
+            if filename.lower().endswith('.txt'):
+                continue
             filecount+=1
             print(filecount, file_path)
             analyze_ole_file(file_path)
             print()
 
 if __name__ == "__main__":
-    target_directory = "c:\\sample"  # 여기에 대상 디렉토리 경로를 입력하세요
+    target_directory = "c:\\dummy_ms"  # 여기에 대상 디렉토리 경로를 입력하세요
     traverse_and_act(target_directory)
