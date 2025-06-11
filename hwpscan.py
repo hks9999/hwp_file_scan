@@ -18,9 +18,9 @@ def auto_decompress(data):
 
     try:
         decompressed = zlib.decompress(data, wbits=wbits)
-        return 1, decompressed
+        return 1, decompressed # 성공하면, 암호화 해제된 데이터 리턴
     except zlib.error:
-        return 0, data
+        return 0, data #원본 데이터 리턴
 
 def analyze_ole_file(file_path):
     """
@@ -45,15 +45,30 @@ def analyze_ole_file(file_path):
                     return_flag, return_content = auto_decompress(data)
                     if(return_flag == True ):
                         print("----> Compressed")
-                        if b"xor" in return_content:
-                            print(f"   🔍 'xor' 문자열 발견! ")
-                        if b"\x4d\x5a\x00\x00" in return_content:
-                            print(f"   🔍 'mz' 문자열 발견! ")
-                        if b"\x70\x00\x6f\x00\x77\x00\x65\x00" in return_content:
-                            print(f"   🔍 'powershell' 문자열 발견 !")
-                        if b"909090909090" in return_content:
-                            print(f"   🔍 'Nop Code' 발견 !")
-                            
+                        
+                    ##################### 여기가 중요함 #################################
+                    if b"xor" in return_content:
+                        print(f"   🔍 'xor' 발견! ")
+                    if b"\x4d\x5a\x00\x00" in return_content:
+                        print(f"   🔍 'MZ' 발견! ")
+                    if b"\x70\x00\x6f\x00\x77\x00\x65\x00" in return_content:
+                        print(f"   🔍 'powershell' 발견 !")
+                    if b"909090909090" in return_content:
+                        print(f"   🔍 'Nop Code' 발견 !")
+                    if b"\x53\x00\x61\x00\x76\x00\x65\x00\x54\x00" in return_content:
+                        print(f"   🔍 'Script[SaveToFile]' 발견 !")
+                    if b"getenv" in return_content:
+                        print(f"   🔍 GhostScript 'getenv' 발견 !")
+                    if b"Startup" in return_content:
+                        print(f"   🔍 GhostScript 'Startup' 발견 !")
+                    if b"exec" in return_content:
+                        print(f"   🔍 GhostScript 'exec' 발견 !")
+                    if b"dup" in return_content:
+                        print(f"   🔍 GhostScript 'dup' 발견 !")
+                    if b"SQBmACg" in return_content:
+                        print(f"   🔍 PowerShell Base64 Code 'SQBmACg' 발견 !")
+                     ##################### 여기가 중요함 #################################
+                     
             except Exception as e:
                 print(f" - {entry_path} (⚠️ 크기를 읽을 수 없음: {e})")
 
@@ -89,11 +104,12 @@ def signature_file(filepath):
         return f"파일을 열 수 없습니다: {e}"
 
 def traverse_and_act(root_dir):
+    filecount = 0
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
-            print(file_path)
-            #print(signature_file(file_path))
+            filecount+=1
+            print(filecount, file_path)
             analyze_ole_file(file_path)
             print()
 
